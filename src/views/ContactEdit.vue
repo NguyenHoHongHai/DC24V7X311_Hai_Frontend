@@ -1,139 +1,87 @@
 <template>
-  <div class="page">
+  <div v-if="contact" class="page">
     <h4 class="mb-3 text-primary">
-      <i class="fas fa-user-edit"></i> Cập nhật thông tin liên hệ
+      <i class="fas fa-edit"></i> Hiệu chỉnh Liên hệ
     </h4>
 
-    <form @submit.prevent="updateContact">
-      <!-- Họ tên -->
-      <div class="form-group mb-3">
-        <label><strong>Họ và tên:</strong></label>
-        <input v-model="contact.name" type="text" class="form-control" required />
-      </div>
+    <!-- Form tái sử dụng -->
+    <ContactForm
+      :contact="contact"
+      @submit:contact="updateContact"
+      @delete:contact="deleteContact"
+    />
 
-      <!-- Email -->
-      <div class="form-group mb-3">
-        <label><strong>Email:</strong></label>
-        <input v-model="contact.email" type="email" class="form-control" />
-      </div>
-
-      <!-- Địa chỉ -->
-      <div class="form-group mb-3">
-        <label><strong>Địa chỉ:</strong></label>
-        <input v-model="contact.address" type="text" class="form-control" />
-      </div>
-
-      <!-- Điện thoại -->
-      <div class="form-group mb-3">
-        <label><strong>Điện thoại:</strong></label>
-        <input v-model="contact.phone" type="text" class="form-control" />
-      </div>
-
-      <!-- Giới tính -->
-      <div class="form-group mb-3">
-        <label><strong>Giới tính:</strong></label><br />
-        <div class="form-check form-check-inline">
-          <input v-model="contact.gender" class="form-check-input" type="radio" value="male" />
-          <label class="form-check-label">Nam</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input v-model="contact.gender" class="form-check-input" type="radio" value="female" />
-          <label class="form-check-label">Nữ</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input v-model="contact.gender" class="form-check-input" type="radio" value="other" />
-          <label class="form-check-label">Khác</label>
-        </div>
-      </div>
-
-      <!-- Sở thích -->
-      <div class="form-group mb-3">
-        <label><strong>Sở thích:</strong></label>
-        <div v-for="(h, index) in hobbies" :key="index" class="form-check">
-          <input class="form-check-input" type="checkbox" :value="h" v-model="contact.hobbies" />
-          <label class="form-check-label">{{ h }}</label>
-        </div>
-      </div>
-
-      <!-- Sở trường -->
-      <div class="form-group mb-3">
-        <label><strong>Sở trường:</strong></label>
-        <div v-for="(s, index) in skills" :key="index" class="form-check">
-          <input class="form-check-input" type="checkbox" :value="s" v-model="contact.skills" />
-          <label class="form-check-label">{{ s }}</label>
-        </div>
-      </div>
-
-      <!-- Tình trạng hôn nhân -->
-      <div class="form-group mb-3">
-        <label><strong>Tình trạng hôn nhân:</strong></label>
-        <select v-model="contact.maritalStatus" class="form-control">
-          <option value="">-- Chọn --</option>
-          <option value="Độc thân">Độc thân</option>
-          <option value="Đã kết hôn">Đã kết hôn</option>
-          <option value="Ly hôn">Ly hôn</option>
-        </select>
-      </div>
-
-      <!-- Yêu thích -->
-      <div class="form-group mb-3">
-        <label><strong>Liên hệ yêu thích:</strong></label>
-        <input type="checkbox" v-model="contact.favorite" class="ml-2" /> Có
-      </div>
-
-      <div class="text-center mt-4">
-        <button class="btn btn-primary" type="submit">
-          <i class="fas fa-save"></i> Cập nhật
-        </button>
-        <button class="btn btn-secondary" type="button" @click="goBack">
-          <i class="fas fa-arrow-left"></i> Quay lại
-        </button>
-      </div>
-    </form>
+    <p class="text-success mt-2">{{ message }}</p>
   </div>
 </template>
 
 <script>
+import ContactForm from "@/components/ContactForm.vue";
 import ContactService from "@/services/contact.service";
 
 export default {
+  components: {
+    ContactForm,
+  },
+
+  props: {
+    id: { type: String, required: true },
+  },
+
   data() {
     return {
-      contact: {
-        name: "",
-        email: "",
-        address: "",
-        phone: "",
-        gender: "",
-        hobbies: [],
-        skills: [],
-        maritalStatus: "",
-        favorite: false,
-      },
-
-      hobbies: ["Đọc sách", "Nghe nhạc", "Thể thao", "Du lịch", "Ẩm thực"],
-      skills: ["Lập trình", "Giao tiếp", "Thiết kế", "Phân tích", "Quản lý"],
+      contact: null,
+      message: "",
     };
   },
 
   methods: {
+    // Lấy liên hệ theo ID
     async getContact(id) {
-      this.contact = await ContactService.get(id);
+      try {
+        this.contact = await ContactService.get(id);
+      } catch (error) {
+        console.error(error);
+
+        // Điều hướng đến trang 404 nếu không tìm thấy liên hệ
+        this.$router.push({
+          name: "notfound",
+          params: { 
+            pathMatch: this.$route.path.split("/").slice(1)
+          },
+          query: this.$route.query,
+          hash: this.$route.hash,
+        });
+      }
     },
 
-    async updateContact() {
-      await ContactService.update(this.contact._id, this.contact);
-      alert("Cập nhật thành công!");
-      this.$router.push({ name: "contactbook" });
+    // Cập nhật liên hệ
+    async updateContact(data) {
+      try {
+        await ContactService.update(this.contact._id, data);
+        alert("Liên hệ được cập nhật thành công.");
+        this.$router.push({ name: "contactbook" });
+      } catch (error) {
+        console.error(error);
+      }
     },
 
-    goBack() {
-      this.$router.push({ name: "contactbook" });
+    // Xóa liên hệ
+    async deleteContact() {
+      if (confirm("Bạn muốn xóa Liên hệ này?")) {
+        try {
+          await ContactService.delete(this.contact._id);
+          this.$router.push({ name: "contactbook" });
+        } catch (error) {
+          console.error(error);
+        }
+      }
     },
   },
 
-  mounted() {
-    this.getContact(this.$route.params.id);
+  created() {
+    this.getContact(this.id);
+    this.message = "";
   },
 };
 </script>
@@ -142,9 +90,5 @@ export default {
 .page {
   max-width: 600px;
   margin: 20px auto;
-  padding: 20px;
-  border: 2px solid #007bff;
-  border-radius: 8px;
-  background: white;
 }
 </style>
