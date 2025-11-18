@@ -22,7 +22,14 @@ const routes = [
     path: "/contacts/:id",
     name: "contact.edit",
     component: ContactEdit,
-    props: true, // cho phép truyền params vào component
+    props: true,
+  },
+
+  // 🟦 ROUTE 404 — phải đặt ở cuối
+  {
+    path: "/:pathMatch(.*)*",
+    name: "notfound",
+    component: () => import("@/views/NotFound.vue"),
   },
 ];
 
